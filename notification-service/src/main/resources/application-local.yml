@@ -1,0 +1,13 @@
+spring.cloud.aws:
+  region:
+    static: us-east-1
+  credentials:
+    access-key: test
+    secret-key: test
+  sqs:
+    endpoint: http://localhost:4566
+
+app:
+  aws:
+    sqs:
+      notification-queue-name: ${APP_AWS_SQS_NOTIFICATION_QUEUE_NAME:notification-events-queue}
