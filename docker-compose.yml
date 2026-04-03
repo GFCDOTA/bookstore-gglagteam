@@ -1,0 +1,147 @@
+version: "3.9"
+services:
+
+  localstack:
+    image: localstack/localstack:3.4
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs,sns,ssm,secretsmanager
+      - DEFAULT_REGION=us-east-1
+      - EAGER_SERVICE_LOADING=1
+    volumes:
+      - "./infra/localstack/init:/etc/localstack/init/ready.d"
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres-catalog:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: ${CATALOG_DB_USER:-catalog_user}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-catalog-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog_user -d catalog_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-order:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: ${ORDER_DB_USER:-order_user}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-order-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_user -d order_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-payment:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: ${PAYMENT_DB_USER:-payment_user}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  book-catalog-service:
+    build: ./book-catalog-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgres-catalog:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-catalog:5432/catalog_db
+      SPRING_DATASOURCE_USERNAME: ${CATALOG_DB_USER:-catalog_user}
+      SPRING_DATASOURCE_PASSWORD: ${CATALOG_DB_PASSWORD}
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SNS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SSM_ENDPOINT: http://localstack:4566
+      APP_AWS_SNS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:bookstore-events
+      APP_AWS_SQS_CATALOG_QUEUE_NAME: catalog-events-queue
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-order:5432/order_db
+      SPRING_DATASOURCE_USERNAME: ${ORDER_DB_USER:-order_user}
+      SPRING_DATASOURCE_PASSWORD: ${ORDER_DB_PASSWORD}
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SNS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SSM_ENDPOINT: http://localstack:4566
+      APP_AWS_SNS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:bookstore-events
+      APP_AWS_SQS_ORDER_QUEUE_NAME: order-events-queue
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgres-payment:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: ${PAYMENT_DB_USER:-payment_user}
+      SPRING_DATASOURCE_PASSWORD: ${PAYMENT_DB_PASSWORD}
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SNS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SSM_ENDPOINT: http://localstack:4566
+      APP_AWS_SNS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:bookstore-events
+      APP_AWS_SQS_PAYMENT_QUEUE_NAME: payment-events-queue
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "8084:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SNS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_SSM_ENDPOINT: http://localstack:4566
+      APP_AWS_SQS_NOTIFICATION_QUEUE_NAME: notification-events-queue
+
+volumes:
+  localstack-data:
+  postgres-catalog-data:
+  postgres-order-data:
+  postgres-payment-data:

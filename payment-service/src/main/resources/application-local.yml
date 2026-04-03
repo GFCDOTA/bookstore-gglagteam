@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/payment_db}
+    username: ${SPRING_DATASOURCE_USERNAME:payment_user}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+spring.cloud.aws:
+  region:
+    static: ${AWS_REGION:us-east-1}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID:test}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+  sqs:
+    endpoint: ${SPRING_CLOUD_AWS_SQS_ENDPOINT:http://localhost:4566}
+  sns:
+    endpoint: ${SPRING_CLOUD_AWS_SNS_ENDPOINT:http://localhost:4566}
+
+app:
+  aws:
+    sns:
+      topic-arn: ${APP_AWS_SNS_TOPIC_ARN:arn:aws:sns:us-east-1:000000000000:bookstore-events}
+    sqs:
+      payment-queue-name: ${APP_AWS_SQS_PAYMENT_QUEUE_NAME:payment-events-queue}
