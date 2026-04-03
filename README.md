@@ -1,6 +1,6 @@
 # Bookstore Microservices
 
-Arquitetura de microsserviços para uma livraria online, implementada com **Spring Boot 3.3**, **Java 21**, **PostgreSQL**, **SNS/SQS** (via LocalStack) e **Hexagonal Architecture**.
+Arquitetura de microsserviços para uma livraria online, implementada com **Spring Boot 3.3**, **Java 21**, **PostgreSQL**, **SNS/SQS** (via MiniStack) e **Hexagonal Architecture**.
 
 ## Arquitetura
 
@@ -20,7 +20,7 @@ Arquitetura de microsserviços para uma livraria online, implementada com **Spri
                     │   SNS   │────────────▶│    SQS    │
                     │ Topic   │  fan-out    │  Queues   │
                     └─────────┘             └───────────┘
-                         LocalStack (:4566)
+                         MiniStack (:4566)
 ```
 
 ## Microsserviços
@@ -77,7 +77,7 @@ Arquitetura de microsserviços para uma livraria online, implementada com **Spri
 docker compose up --build
 
 # Ou apenas a infraestrutura (para rodar os serviços na IDE)
-docker compose up localstack postgres-catalog postgres-order postgres-payment
+docker compose up ministack postgres-catalog postgres-order postgres-payment
 ```
 
 ## Exemplos de uso
