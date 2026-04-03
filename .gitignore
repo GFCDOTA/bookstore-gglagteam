@@ -28,5 +28,5 @@ Thumbs.db
 .factorypath
 
 # Docker
-localstack-data/
+ministack-data/
 postgres-*-data/
